@@ -49,7 +49,7 @@ func NewMnemonic(entropy []byte) (string, error) {
 	}
 
 	// Add checksum to entropy
-	entropy = addChecksum(entropy)
+	entropy = AddChecksum(entropy)
 
 	// Break entropy up into sentenceLength chunks of 11 bits
 	// For each word AND mask the rightmost 11 bits and find the word at that index
@@ -83,12 +83,6 @@ func NewMnemonic(entropy []byte) (string, error) {
 // MnemonicToByteArray takes a mnemonic string and turns it into a byte array
 // suitable for creating another mnemonic.
 // An error is returned if the mnemonic is invalid.
-// FIXME
-// This does not work for all values in
-// the test vectors.  Namely
-// Vectors 0, 4, and 8.
-// This is not really important because BIP39 doesnt really define a conversion
-// from string to bytes.
 func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 	if IsMnemonicValid(mnemonic) == false {
 		return nil, fmt.Errorf("Invalid mnemonic")
@@ -141,7 +135,7 @@ func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 		entropyHex = tmp
 	}
 
-	validationHex := addChecksum(entropyHex)
+	validationHex := AddChecksum(entropyHex)
 	if len(validationHex) != byteSize {
 		tmp2 := make([]byte, byteSize)
 		diff2 := byteSize - len(validationHex)
@@ -156,9 +150,13 @@ func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 	}
 	for i := range validationHex {
 		if hex[i] != validationHex[i] {
-			return nil, fmt.Errorf("Invalid byte at position %v", i)
+			return nil, fmt.Errorf("invalid byte at position %v. got: %v, want: %v", i, hex[i], validationHex[i])
 		}
 	}
+	// TODO is it the big.Int conversion??? Yes it is ... :-/
+	// it drops a leading zero ...
+	//dataBigInt := new(big.Int).SetBytes(hex)
+	//return dataBigInt.Bytes(), nil
 	return hex, nil
 }
 
@@ -180,7 +178,7 @@ func NewSeed(mnemonic string, password string) []byte {
 
 // Appends to data the first (len(data) / 32)bits of the result of sha256(data)
 // Currently only supports data up to 32 bytes
-func addChecksum(data []byte) []byte {
+func AddChecksum(data []byte) []byte {
 	// Get first byte of sha256
 	hasher := sha256.New()
 	hasher.Write(data)
@@ -203,8 +201,14 @@ func addChecksum(data []byte) []byte {
 			dataBigInt.Or(dataBigInt, BigOne)
 		}
 	}
+	var res []byte
+	if data[0] == 0x0 {
+		res = append([]byte{0x0}, dataBigInt.Bytes()...)
+	}else {
+		res = dataBigInt.Bytes()
+	}
 
-	return dataBigInt.Bytes()
+	return res
 }
 
 func padByteSlice(slice []byte, length int) []byte {

@@ -22,6 +22,10 @@ func TestBip39(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, vector.mnemonic, mnemonic)
 
+		//b, _ := MnemonicToByteArray(mnemonic)
+		//fmt.Println(AddChecksum(b), len(AddChecksum(b)))
+		//fmt.Println(entropy, len(entropy))
+
 		seed, err := NewSeedWithErrorChecking(mnemonic, "TREZOR")
 		assert.Equal(t, vector.seed, hex.EncodeToString(seed))
 		assert.NoError(t, err)
